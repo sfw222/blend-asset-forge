@@ -1,0 +1,53 @@
+node_modules/
+__pycache__/
+.pytest_cache/
+.vitest/
+*.pyc
+dsh-blender.config.json
+*.tgz
+*.zip
+!extension/blend_asset_forge_bridge.zip
+*.log
+.DS_Store
+
+# Python 虚拟环境（open3d 等大依赖，1.2G，绝不入库；用 runtime/ext/README 里的安装说明重建）
+venv/
+runtime/ext/venv/
+.venv/
+.venv.broken-*/
+
+# Ruff editor cache
+.ruff_cache/
+
+# 工作树/构建用的依赖符号链接（node_modules/ 只匹配目录，符号链接要单独忽略）
+node_modules
+
+# 构建产物（T15：prepack 重建，不入库）
+/lib/
+/lib
+
+# T12: coverage artifacts
+coverage/
+.coverage
+
+# Local-only working notes and evidence: never commit
+/docs/refactor/
+/.dsh/
+# Agent-local working directory (never committed)
+/local-workspace/
+# Local PR-review workspace (never committed or shipped)
+/.review-tmp/
+.vscode/
+
+# Windows hidden-desktop helper build output (scripts/build-win-helper.mjs)
+/tools/win-hidden-desktop/out/
+
+# Windows hidden-desktop helper staged for the npm tarball (release pipeline only)
+/vendor/
+
+# Local agent workspace (never committed or shipped)
+.dsh-ops/
+# pytest keeps its basetemp here when the environment points TMP inside the workspace
+pytest-of-*/
+pytest-*/
+

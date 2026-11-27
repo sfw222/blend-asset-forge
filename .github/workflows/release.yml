@@ -1,0 +1,355 @@
+name: Manual CD
+
+# Manual release pipeline. workflow_dispatch only; the button requires this file on
+# the repository's default branch. dry_run=true is the default; actual releases
+# create a draft GitHub Release and never push main or a tag.
+#
+# The extension upload is opt-in (publish_extension, default false). The first
+# version is submitted manually at https://extensions.blender.org/ with a
+# Blender ID; later versions use the official API with the repository secret
+# BLENDER_EXTENSIONS_TOKEN. A missing token fails closed instead of reporting a
+# published version.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version; must match package.json and PLUGIN_VERSION'
+        required: true
+        default: '3.1.0-alpha.1'
+        type: string
+      dry_run:
+        description: 'Verify and package only; do not create a tag or release'
+        required: true
+        default: true
+        type: boolean
+      publish_npm:
+        description: 'After the draft release exists, publish the tarball to npm'
+        required: true
+        default: false
+        type: boolean
+      publish_extension:
+        description: 'Upload the extension zip to extensions.blender.org (requires BLENDER_EXTENSIONS_TOKEN)'
+        required: true
+        default: false
+        type: boolean
+
+run-name: Manual CD ${{ inputs.version }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
+  PYTHON_VERSION: '3.11'
+  PYTHONIOENCODING: utf-8
+  PYTHONUTF8: '1'
+  NPM_CONFIG_FUND: 'false'
+  NPM_CONFIG_AUDIT: 'false'
+
+jobs:
+  verify:
+    name: Verify release gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHON: .venv/bin/python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Set up development environment
+        run: node scripts/setup-dev.mjs
+      - name: Validate version and release settings
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const version = process.env.VERSION
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+            throw new Error('invalid version: ' + version)
+          }
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          const constants = fs.readFileSync('src/constants.ts', 'utf8')
+          const protocolSource = fs.readFileSync('extension/dsh_blender_bridge/gateway_schema.py', 'utf8')
+          const manifest = fs.readFileSync('extension/dsh_blender_bridge/blender_manifest.toml', 'utf8')
+          const gateway = JSON.parse(fs.readFileSync('config/gateway.json', 'utf8'))
+          if (pkg.version !== version) {
+            throw new Error('package.json is ' + pkg.version + ', input is ' + version)
+          }
+          if (!constants.includes("PLUGIN_VERSION = '" + version + "'")) {
+            throw new Error('PLUGIN_VERSION in src/constants.ts is not ' + version)
+          }
+          const protocol = protocolSource.match(/ADDON_PROTOCOL_VERSION\s*=\s*(\d+)/)
+          const addonVersion = manifest.match(/^version\s*=\s*"([^"]+)"/m)
+          if (!protocol || !addonVersion) {
+            throw new Error('addon manifest/protocol constants are missing')
+          }
+          if (Number(protocol[1]) !== gateway.addon.protocol) {
+            throw new Error('addon gateway_schema.py and config/gateway.json disagree')
+          }
+          if (addonVersion[1] !== gateway.addon.version) {
+            throw new Error('blender_manifest.toml and config/gateway.json disagree')
+          }
+          console.log('VERSION OK ' + version + ' (addon ' + addonVersion[1] + ', protocol ' + protocol[1] + ')')
+          NODE
+      - name: Static checks
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run format:check
+          npm run build
+          npm run check:build
+          npm run check:git-hygiene
+          npm run check:structure
+          npm run test:parity
+      - name: Unit, integration, contract and addon tests
+        run: |
+          npm run test:unit
+          npm run test:integration
+          npm run test:contract
+          npm run test:python
+          npm run test:extension-unit
+          npm run typecheck:extension
+      - name: Behavior matrix release gate
+        run: npm run test:matrix
+      - name: Coverage ratchet
+        run: |
+          npm run test:coverage
+          .venv/bin/python -m pytest tests/unit/python tests/integration/python --cov=extension --cov-branch --cov-report=json:coverage/python-coverage.json --cov-report=term
+          git rev-parse --verify v2.6.2
+          .venv/bin/diff-cover coverage/lcov.info --compare-branch=v2.6.2 --json-report=coverage/diff-cover.json
+          npm run check:coverage
+      - name: Clean-install smoke
+        run: npm run smoke:install
+      - name: Upload coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: coverage/
+
+  windows-helper:
+    name: Build the Windows hidden-desktop helper
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      - name: Build and self-test the helper
+        run: npm run build:win-helper
+      - name: Run the helper end-to-end checks
+        run: node tests/e2e/win_hidden_desktop.mjs --json win-helper-e2e.json
+      - name: Stage the helper as the packaged resource
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force vendor/win-hidden-desktop | Out-Null
+          Copy-Item tools/win-hidden-desktop/out/dsh-blender-hidden-desktop.exe vendor/win-hidden-desktop/
+          Copy-Item tools/win-hidden-desktop/out/build.json vendor/win-hidden-desktop/build.json
+      - name: Verify version, source, and tarball inclusion
+        run: npm run check:win-helper -- --packed
+      - name: Upload the packaged helper
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: win-hidden-desktop
+          path: vendor/win-hidden-desktop/
+
+  package:
+    name: Build release assets
+    needs:
+      - verify
+      - windows-helper
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      - name: Download the Windows hidden-desktop helper
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: win-hidden-desktop
+          path: vendor/win-hidden-desktop
+      - name: Verify the packaged helper
+        run: npm run check:win-helper
+      - name: Build and verify extension zip
+        run: |
+          npm run build:extension
+          npm run check:extension
+      - name: Pack npm tarball and checksums
+        run: |
+          mkdir -p release-assets
+          npm pack --json --pack-destination release-assets
+          cp extension/blend_asset_forge_bridge.zip release-assets/
+          (cd release-assets && sha256sum * > SHA256SUMS)
+          printf 'Release %s. See CHANGELOG.md for details.\n' "${{ inputs.version }}" > release-assets/extension-release-notes.md
+          tar -tzf release-assets/*.tgz | grep -E '^package/vendor/win-hidden-desktop/dsh-blender-hidden-desktop\.exe$'
+          tar -tzf release-assets/*.tgz | grep -E '^package/vendor/win-hidden-desktop/build\.json$'
+          cat release-assets/SHA256SUMS
+      - name: Upload release assets
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-assets
+          path: release-assets/
+
+  draft-release:
+    name: Create draft GitHub Release
+    needs: package
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: release
+      url: https://github.com/${{ github.repository }}/releases
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require main branch
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::Run this workflow from main after the refactor merge; current ref is ${GITHUB_REF_NAME}."
+            exit 1
+          fi
+      - name: Download release assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: release
+      - name: Check tag and release do not exist
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git rev-parse "refs/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::tag v${VERSION} already exists"
+            exit 1
+          fi
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::release v${VERSION} already exists"
+            exit 1
+          fi
+      - name: Create draft release
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS=(--draft --target "${GITHUB_SHA}" --title "v${VERSION}" --generate-notes)
+          if [[ "${VERSION}" == *-* ]]; then
+            ARGS+=(--prerelease)
+          fi
+          gh release create "v${VERSION}" "${ARGS[@]}" \
+            release/*.tgz release/*.zip release/SHA256SUMS
+
+  publish-extension:
+    name: Publish Blender extension
+    needs: package
+    if: ${{ !inputs.dry_run && inputs.publish_extension }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: release
+      url: https://extensions.blender.org/
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Download release assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: release
+      - name: Refuse a prerelease marketplace upload
+        if: contains(inputs.version, '-')
+        run: |
+          echo "::error::The Blender extension marketplace only accepts stable releases; use publish_extension=false for a prerelease."
+          exit 1
+      - name: Require the extension upload token
+        env:
+          BLENDER_EXTENSIONS_TOKEN: ${{ secrets.BLENDER_EXTENSIONS_TOKEN }}
+        run: |
+          if [ -z "$BLENDER_EXTENSIONS_TOKEN" ]; then
+            echo "::error::BLENDER_EXTENSIONS_TOKEN is not configured. Add the repository secret, or submit the first version manually at https://extensions.blender.org/ and rerun with publish_extension=true."
+            exit 1
+          fi
+      - name: Upload extension version
+        env:
+          BLENDER_EXTENSIONS_TOKEN: ${{ secrets.BLENDER_EXTENSIONS_TOKEN }}
+        run: |
+          npm run publish:extension -- \
+            --zip release/blend_asset_forge_bridge.zip \
+            --notes-file release/extension-release-notes.md \
+            --extension-id dsh_blender_bridge \
+            --manifest extension/dsh_blender_bridge/blender_manifest.toml
+
+  publish-npm:
+    name: Publish npm package
+    needs:
+      - package
+      - draft-release
+    if: ${{ !inputs.dry_run && inputs.publish_npm }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: release
+      url: https://www.npmjs.com/package/blend-asset-forge
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: release
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+      - name: Publish tarball
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          ls -l release
+          if [[ "${VERSION}" == *-* ]]; then
+            NPM_TAG=alpha
+          else
+            NPM_TAG=latest
+          fi
+          npm publish ./release/*.tgz --access public --provenance --tag "${NPM_TAG}"

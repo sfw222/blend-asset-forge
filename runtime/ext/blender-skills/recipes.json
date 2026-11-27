@@ -1,0 +1,627 @@
+{
+  "min_blender": [
+    5,
+    2,
+    0
+  ],
+  "recipes": {
+    "bake_action": {
+      "group": "rig_animation",
+      "skill": "blender-animation",
+      "summary": "Bake animation clips from a control rig onto an export skeleton (visual keying), one action per",
+      "options": [
+        "source",
+        "target",
+        "actions",
+        "root_motion",
+        "hips",
+        "step",
+        "clean",
+        "follow",
+        "list"
+      ]
+    },
+    "loop_check": {
+      "group": "rig_animation",
+      "skill": "blender-animation",
+      "summary": "Check that a cycle loops: the pose at the last frame equals the first (no pop), and the motion",
+      "options": [
+        "object",
+        "action",
+        "frames",
+        "tol_deg",
+        "tol_m",
+        "root_motion",
+        "fix"
+      ]
+    },
+    "retarget": {
+      "group": "rig_animation",
+      "skill": "blender-animation",
+      "summary": "Retarget an animated skeleton (mocap/BVH/Mixamo/any rig) onto another rig, constraint-free.",
+      "options": [
+        "source",
+        "target",
+        "map",
+        "frames",
+        "in_place",
+        "name",
+        "show_map"
+      ]
+    },
+    "qa_check": {
+      "group": "uv_qa",
+      "skill": "blender-asset-qa",
+      "summary": "Mesh/asset QA: z-fighting, detached parts, normals, topology, transforms, UVs, weights, materials",
+      "options": [
+        "objects",
+        "profile",
+        "eps",
+        "tol",
+        "no_modifiers",
+        "max_tris",
+        "uv"
+      ]
+    },
+    "review_shots": {
+      "group": "visual_review",
+      "skill": "blender-asset-qa",
+      "summary": "Render a multi-angle review contact sheet (headless-safe Workbench) for visual QA.",
+      "options": [
+        "objects",
+        "out",
+        "views",
+        "mode",
+        "res"
+      ]
+    },
+    "bind_mesh": {
+      "group": "rig_animation",
+      "skill": "blender-character-rigging",
+      "summary": "Skin meshes to an armature with robust automatic weights, then clean them for engines.",
+      "options": [
+        "armature",
+        "meshes",
+        "method",
+        "limit",
+        "clean"
+      ]
+    },
+    "rig_check": {
+      "group": "rig_animation",
+      "skill": "blender-character-rigging",
+      "summary": "Validate a skeleton + its skinned meshes for animation/engine export; optional safe fixes.",
+      "options": [
+        "armature",
+        "meshes",
+        "profile",
+        "fix",
+        "limit"
+      ]
+    },
+    "rigify_build": {
+      "group": "rig_animation",
+      "skill": "blender-character-rigging",
+      "summary": "Rigify pipeline: add + fit metarig, generate control rig, build an engine-ready game skeleton.",
+      "options": [
+        "add",
+        "metarig",
+        "fit",
+        "no_face",
+        "generate",
+        "game_skel",
+        "rig",
+        "strip_prefix"
+      ]
+    },
+    "stress_poses": {
+      "group": "rig_animation",
+      "skill": "blender-character-rigging",
+      "summary": "Create a QA_Stress action with extreme poses to review deformation (elbows, knees, shoulders, hips, spine, neck).",
+      "options": [
+        "armature",
+        "clear"
+      ]
+    },
+    "garment": {
+      "group": "character_specialty",
+      "skill": "blender-clothing",
+      "summary": "Game clothing from a body: extract a region as a garment shell (ease offset + thickness), copy the",
+      "options": [
+        "body",
+        "group",
+        "zmin",
+        "zmax",
+        "name",
+        "offset",
+        "thickness",
+        "subdiv",
+        "max_influences",
+        "hide_body",
+        "drape",
+        "morphs",
+        "check"
+      ]
+    },
+    "env_report": {
+      "group": "diagnostics",
+      "skill": "blender-core",
+      "summary": "Report Blender version, engines, GPU, add-ons, units and scene stats as JSON.",
+      "options": []
+    },
+    "kit_check": {
+      "group": "procedural_scene",
+      "skill": "blender-environment-kits",
+      "summary": "Validate modular kit pieces so they snap together: applied transforms, footprint on the grid,",
+      "options": [
+        "objects",
+        "grid",
+        "pivot",
+        "texture",
+        "tol",
+        "prefix",
+        "fix"
+      ]
+    },
+    "scatter": {
+      "group": "procedural_scene",
+      "skill": "blender-environment-kits",
+      "summary": "Biome scatter with Geometry Nodes: Poisson-disk instances of a collection on a surface, filtered by",
+      "options": [
+        "target",
+        "collection",
+        "density",
+        "min_distance",
+        "max_slope",
+        "height_min",
+        "height_max",
+        "mask",
+        "scale",
+        "align",
+        "seed",
+        "realize",
+        "name",
+        "export_points"
+      ]
+    },
+    "terrain": {
+      "group": "procedural_scene",
+      "skill": "blender-environment-kits",
+      "summary": "Game-ready terrain: noise (fbm, ridged mountains, rolling hills) or a heightmap image on a grid,",
+      "options": [
+        "size",
+        "res",
+        "height",
+        "type",
+        "scale",
+        "octaves",
+        "seed",
+        "heightmap",
+        "erosion",
+        "terrace",
+        "flatten",
+        "material",
+        "export_heightmap",
+        "export_splat",
+        "name"
+      ]
+    },
+    "export_asset": {
+      "group": "batch_delivery",
+      "skill": "blender-export-pipelines",
+      "summary": "Export objects/collections with engine presets, then verify the file.",
+      "options": [
+        "preset",
+        "objects",
+        "collection",
+        "out",
+        "batch",
+        "no_anim",
+        "draco",
+        "set"
+      ]
+    },
+    "shapekeys": {
+      "group": "rig_animation",
+      "skill": "blender-facial-shapekeys",
+      "summary": "Shape-key toolkit for faces: create ARKit-52 / viseme sets, split symmetric keys L/R,",
+      "options": [
+        "mesh",
+        "create",
+        "split",
+        "mirror",
+        "report",
+        "drivers",
+        "falloff",
+        "style"
+      ]
+    },
+    "mesh_stats": {
+      "group": "uv_qa",
+      "skill": "blender-game-optimization",
+      "summary": "Budget report: tris/verts per object, materials (draw calls), textures + VRAM, vs a platform budget.",
+      "options": [
+        "objects",
+        "budget"
+      ]
+    },
+    "gn_builder": {
+      "group": "procedural_scene",
+      "skill": "blender-geometry-nodes",
+      "summary": "Build node trees (Geometry Nodes, shader, compositor) from a compact JSON spec, apply them as",
+      "options": [
+        "spec",
+        "apply_to",
+        "set",
+        "describe_types"
+      ]
+    },
+    "groom": {
+      "group": "character_specialty",
+      "skill": "blender-hair-grooming",
+      "summary": "Groom hair curves on a surface with Blender's bundled hair node assets, and turn a groom into",
+      "options": [
+        "surface",
+        "cards",
+        "mask",
+        "density",
+        "children",
+        "viewport",
+        "length",
+        "points",
+        "clump",
+        "curl",
+        "droop",
+        "noise",
+        "radius",
+        "melanin",
+        "redness",
+        "roughness",
+        "seed",
+        "name",
+        "card_count",
+        "card_width",
+        "atlas_columns",
+        "atlas_res",
+        "out"
+      ]
+    },
+    "apply_stack": {
+      "group": "geometry_materials",
+      "skill": "blender-hardsurface-modeling",
+      "summary": "Build (and optionally apply) a production hard-surface modifier stack.",
+      "options": [
+        "objects",
+        "preset",
+        "width",
+        "segments",
+        "angle",
+        "cutters",
+        "solver",
+        "operation",
+        "triangulate",
+        "apply"
+      ]
+    },
+    "turntable": {
+      "group": "visual_production",
+      "skill": "blender-lighting-lookdev",
+      "summary": "Look-dev scene in one call: framed camera, light rig (studio 3-point / HDRI / both), optional",
+      "options": [
+        "objects",
+        "rig",
+        "hdri",
+        "hdri_strength",
+        "frames",
+        "lens",
+        "backdrop",
+        "elevation"
+      ]
+    },
+    "build_pbr_material": {
+      "group": "geometry_materials",
+      "skill": "blender-pbr-materials",
+      "summary": "Build a correct metal/rough PBR material from texture files or a measured preset.",
+      "options": [
+        "name",
+        "textures",
+        "preset",
+        "color",
+        "objects",
+        "tile",
+        "alpha",
+        "displacement",
+        "dx_normal"
+      ]
+    },
+    "batch_process": {
+      "group": "batch_delivery",
+      "skill": "blender-pipeline-automation",
+      "summary": "Batch over many files in one Blender process: convert formats, inventory report, or run any",
+      "options": [
+        "inp",
+        "op",
+        "to",
+        "out",
+        "script",
+        "kwargs",
+        "save_to",
+        "shard",
+        "set",
+        "stream"
+      ]
+    },
+    "render_batch": {
+      "group": "visual_production",
+      "skill": "blender-rendering",
+      "summary": "Render stills/animations with quality presets, per-camera batches, any output format.",
+      "options": [
+        "engine",
+        "preset",
+        "res",
+        "percent",
+        "samples",
+        "out",
+        "format",
+        "frames",
+        "cameras",
+        "view",
+        "look",
+        "transparent",
+        "device"
+      ]
+    },
+    "auto_retopo": {
+      "group": "geometry_materials",
+      "skill": "blender-retopology-uv",
+      "summary": "Make a low-poly retopo copy of a dense mesh (sculpt/scan/AI-generated) at a triangle budget.",
+      "options": [
+        "objects",
+        "method",
+        "tris",
+        "voxel",
+        "symmetry"
+      ]
+    },
+    "texel_density": {
+      "group": "uv_qa",
+      "skill": "blender-retopology-uv",
+      "summary": "Measure (and optionally set) texel density in px/m for objects' active UV map.",
+      "options": [
+        "objects",
+        "res",
+        "set",
+        "margin_px"
+      ]
+    },
+    "uv_pack": {
+      "group": "uv_qa",
+      "skill": "blender-retopology-uv",
+      "summary": "Unwrap + pack UVs with production defaults; optional seams-from-sharp and lightmap UV2.",
+      "options": [
+        "objects",
+        "method",
+        "angle",
+        "seams_from_sharp",
+        "res",
+        "margin_px",
+        "lightmap",
+        "shape"
+      ]
+    },
+    "scene_audit": {
+      "group": "uv_qa",
+      "skill": "blender-scene-setup",
+      "summary": "Audit scene hygiene: units, transforms, naming, collections, materials, images, orphans.",
+      "options": [
+        "objects",
+        "fix"
+      ]
+    },
+    "sculpt_ops": {
+      "group": "geometry_materials",
+      "skill": "blender-sculpting",
+      "summary": "Headless-safe sculpt preparation and procedural \"sculpt\" ops (no Sculpt Mode - it crashes in -b).",
+      "options": [
+        "objects",
+        "ops"
+      ]
+    },
+    "sim_setup": {
+      "group": "visual_production",
+      "skill": "blender-simulation",
+      "summary": "Set up and bake simulations: rigid bodies, classic cloth (presets), 5.2 node-based cloth",
+      "options": [
+        "rigid",
+        "active",
+        "passive",
+        "shape",
+        "density",
+        "friction",
+        "bounce",
+        "cloth",
+        "preset",
+        "pin",
+        "colliders",
+        "gn_cloth",
+        "set",
+        "frames",
+        "bake",
+        "to_keys"
+      ]
+    },
+    "toon_setup": {
+      "group": "visual_production",
+      "skill": "blender-stylized-npr",
+      "summary": "Reversible toon/cel look: banded shading, shadow tint, rim, hard specular, inverted-hull outlines,",
+      "options": [
+        "objects",
+        "bands",
+        "shadow_tint",
+        "threshold",
+        "softness",
+        "rim",
+        "spec",
+        "lighting",
+        "light",
+        "outline",
+        "outline_color",
+        "outline_group",
+        "smooth_normals",
+        "line_art",
+        "line_radius",
+        "remove"
+      ]
+    },
+    "decal": {
+      "group": "geometry_materials",
+      "skill": "blender-texturing",
+      "summary": "Mesh decal that conforms to a surface without z-fighting: a subdivided plane placed at the",
+      "options": [
+        "target",
+        "at",
+        "image",
+        "color",
+        "size",
+        "rotation",
+        "offset",
+        "subdiv",
+        "name"
+      ]
+    },
+    "smart_material": {
+      "group": "geometry_materials",
+      "skill": "blender-texturing",
+      "summary": "Reversible \"smart material\" layers on existing Principled materials: edge wear (paint chipped to",
+      "options": [
+        "objects",
+        "wear",
+        "grime",
+        "dust",
+        "rust",
+        "breakup",
+        "scale",
+        "under_color",
+        "under_metallic",
+        "under_roughness",
+        "grime_color",
+        "dust_color",
+        "curvature_map",
+        "ao_map",
+        "uv",
+        "edge_width",
+        "gain",
+        "remove"
+      ]
+    },
+    "scene_mood": {
+      "group": "visual_production",
+      "skill": "blender-time-of-day",
+      "summary": "Time-of-day / mood environment in one call: physically measured sky + matching sun or moon lamp,",
+      "options": [
+        "time",
+        "mood",
+        "elevation",
+        "heading",
+        "overcast",
+        "fog_visibility",
+        "fog_height",
+        "fog_color",
+        "fog_anisotropy",
+        "grade",
+        "use_exposure",
+        "keep_view",
+        "moon_elevation",
+        "city_glow",
+        "stars"
+      ]
+    },
+    "track_camera": {
+      "group": "visual_production",
+      "skill": "blender-video-editing",
+      "summary": "Automatic camera solve from footage: detect features at the start and end of the shot, track them",
+      "options": [
+        "clip",
+        "focal",
+        "sensor",
+        "threshold",
+        "min_distance",
+        "min_frames",
+        "max_error",
+        "tripod",
+        "setup_scene"
+      ]
+    },
+    "vse_edit": {
+      "group": "visual_production",
+      "skill": "blender-video-editing",
+      "summary": "Assemble a video edit in the Video Sequencer headless: movies (with their audio), image",
+      "options": [
+        "clips",
+        "fps",
+        "resolution",
+        "crossfade",
+        "still_seconds",
+        "title",
+        "title_seconds",
+        "audio",
+        "audio_fade",
+        "out",
+        "render",
+        "scene"
+      ]
+    },
+    "lightning": {
+      "group": "visual_production",
+      "skill": "blender-weather-fx",
+      "summary": "Storm lightning: keyed multi-stroke flashes (a real strike is 3-4 return strokes ~40-60 ms apart),",
+      "options": [
+        "flashes",
+        "frames",
+        "strokes",
+        "at",
+        "distance",
+        "height",
+        "strength",
+        "bolt",
+        "sky",
+        "seed"
+      ]
+    },
+    "precipitation": {
+      "group": "visual_production",
+      "skill": "blender-weather-fx",
+      "summary": "Rain, snow, dust, ash or embers as a seamlessly looping Geometry Nodes system (no simulation:",
+      "options": [
+        "type",
+        "intensity",
+        "density",
+        "wind",
+        "ground",
+        "distance",
+        "loop_frames",
+        "seed",
+        "splash",
+        "max_count"
+      ]
+    },
+    "surface_weather": {
+      "group": "visual_production",
+      "skill": "blender-weather-fx",
+      "summary": "Reversible weather layer on existing materials: wetness (porous darkening + water film coat),",
+      "options": [
+        "objects",
+        "wetness",
+        "puddles",
+        "ripples",
+        "streaks",
+        "snow",
+        "snow_depth",
+        "porosity",
+        "scale",
+        "vertex_mask",
+        "remove"
+      ]
+    }
+  }
+}
